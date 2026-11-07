@@ -1,0 +1,19 @@
+SCATTERGORIES · cómo subirlo a tu web
+
+1. Sube el CONTENIDO de esta carpeta (index.html, sw.js, manifest.webmanifest
+   y las carpetas fonts/, icons/ y screenshots/) a tu hosting, tal cual, sin
+   cambiar nombres. Puede ir en la raíz del dominio o en una subcarpeta.
+2. La web tiene que abrirse por https:// para que funcione sin conexión y se
+   pueda instalar en el móvil.
+3. Para instalarla: ábrela en el móvil y elige "Añadir a pantalla de inicio"
+   (Safari en iPhone, menú ⋮ en Chrome Android). Después funciona sin internet.
+
+Actualizaciones: ya no hace falta cambiar ningún número de versión. Cuando
+subas un index.html nuevo, la app abre al instante con la versión guardada,
+descarga la nueva en segundo plano y muestra "Hay una versión nueva · Recargar".
+
+Copia de seguridad: en la Tabla histórica están "Exportar historial" (descarga
+un archivo .json) e "Importar historial" (lo vuelve a cargar sin duplicar).
+
+Las fuentes (Atkinson Hyperlegible y Bricolage Grotesque) tienen licencia
+SIL Open Font License y se pueden alojar libremente.

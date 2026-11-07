@@ -1,0 +1,959 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Scattergories</title>
+<meta name="description" content="Scattergories para jugar en grupo, cada uno con su móvil. Funciona sin conexión.">
+<meta name="theme-color" content="#eef1f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1322" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scattergories">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preload" href="fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+</head>
+<body>
+<style>
+@font-face { font-family: "Atkinson Hyperlegible"; font-weight: 400; font-style: normal; font-display: swap; src: url("fonts/atkinson-400.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-weight: 700; font-style: normal; font-display: swap; src: url("fonts/atkinson-700.woff2") format("woff2"); }
+@font-face { font-family: "Bricolage Grotesque"; font-weight: 200 800; font-style: normal; font-display: swap; src: url("fonts/bricolage.woff2") format("woff2"); }
+html { -webkit-text-size-adjust: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; min-height: 100vh; }
+img { max-width: 100%; }
+/* Layout: one column de app móvil, máx. 560px; cabecera de juego pegajosa con letra + reloj; hoja de respuestas numerada 1-12. */
+:root {
+  --bg: #eef1f7;
+  --surface: #ffffff;
+  --sunken: #e3e8f2;
+  --ink: #16203a;
+  --muted: #59647f;
+  --line: #d3d9e7;
+  --accent: #2346d8;
+  --accent-ink: #ffffff;
+  --die: #ffc531;
+  --die-ink: #1c1606;
+  --ok: #17895a;
+  --ok-soft: #dcf3e7;
+  --mid: #b86e00;
+  --mid-soft: #fdf0d8;
+  --bad: #c92a45;
+  --bad-soft: #fbe2e6;
+  --shadow: 0 1px 2px rgba(22,32,58,.06), 0 6px 18px rgba(22,32,58,.07);
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1322; --surface: #171f35; --sunken: #111829; --ink: #e8ecf6; --muted: #9aa4c0; --line: #2a3452;
+    --accent: #7590ff; --accent-ink: #0b1020; --die: #ffc531; --die-ink: #1c1606;
+    --ok: #46d08f; --ok-soft: #133528; --mid: #f2ab3e; --mid-soft: #3a2a10; --bad: #ff6b82; --bad-soft: #3d1720;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.28);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1322; --surface: #171f35; --sunken: #111829; --ink: #e8ecf6; --muted: #9aa4c0; --line: #2a3452;
+  --accent: #7590ff; --accent-ink: #0b1020; --die: #ffc531; --die-ink: #1c1606;
+  --ok: #46d08f; --ok-soft: #133528; --mid: #f2ab3e; --mid-soft: #3a2a10; --bad: #ff6b82; --bad-soft: #3d1720;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.28);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+#app { max-width: 560px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 48px; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; touch-action: manipulation; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.panel { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; }
+
+/* Botones */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 18px; border-radius: 12px; font-weight: 700; background: var(--sunken); color: var(--ink); transition: transform .08s ease, filter .15s ease, background .15s; }
+.btn:active { transform: scale(.97); filter: brightness(.94); }
+.btn:disabled { opacity: .45; pointer-events: none; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.danger { background: var(--bad); color: #fff; }
+.btn.ghost { background: transparent; color: var(--accent); padding: 0 8px; min-height: 44px; }
+.btn.block { width: 100%; }
+
+/* Inicio */
+.brand { display: flex; align-items: center; gap: 14px; padding-block: 8px 4px; }
+.brand-die { width: 56px; height: 56px; border-radius: 14px; background: var(--die); color: var(--die-ink); display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: 32px; transform: rotate(-8deg); box-shadow: inset 0 -4px 0 rgba(0,0,0,.14), var(--shadow); }
+.brand h1 { font-size: 30px; font-weight: 800; line-height: 1.05; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.field-label { display: block; font-weight: 700; margin-bottom: 6px; }
+.select { width: 100%; min-height: 52px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 18px; font-weight: 700; padding: 0 14px; }
+.list-peek { margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.list-peek li { font-size: 13px; background: var(--sunken); border-radius: 999px; padding: 3px 10px; color: var(--muted); }
+.roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.role { text-align: left; border-radius: var(--r); padding: 16px; min-height: 148px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; box-shadow: var(--shadow); transition: transform .08s ease; }
+.role:active { transform: scale(.97); }
+.role strong { font-family: var(--f-display); font-size: 21px; line-height: 1.1; display: block; }
+.role span { font-size: 13px; opacity: .85; }
+.role .glyph { font-family: var(--f-display); font-weight: 800; font-size: 28px; }
+.role.host { background: var(--accent); color: var(--accent-ink); }
+.role.guest { background: var(--surface); color: var(--ink); border: 2px solid var(--line); }
+@media (max-width: 360px) { .roles { grid-template-columns: 1fr; } .role { min-height: 0; } }
+.resume { border: 2px dashed var(--accent); }
+
+/* Selector de listas */
+.list-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.list-btn { min-height: 68px; border-radius: 12px; background: var(--surface); border: 2px solid var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: transform .08s ease; }
+.list-btn:active { transform: scale(.95); }
+.list-n { font-family: var(--f-display); font-weight: 800; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+.list-btn small { font-size: 12px; color: var(--muted); }
+.list-btn.played { background: var(--ok-soft); border-color: var(--ok); }
+.list-btn.played small { color: var(--ok); font-weight: 700; }
+.list-btn.current { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.game-total { font-family: var(--f-display); font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Cabecera del juego */
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); margin-inline: -16px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+.topbar .title { flex: 1; min-width: 0; }
+.topbar .title b { font-family: var(--f-display); font-size: 18px; display: block; line-height: 1.1; }
+.topbar .title small { color: var(--muted); font-size: 13px; }
+.mini-letter { width: 44px; height: 44px; border-radius: 10px; background: var(--die); color: var(--die-ink); display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: 26px; flex: none; }
+.mini-letter.empty { background: var(--sunken); color: var(--muted); }
+.mini-clock { font-family: var(--f-display); font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; padding: 6px 10px; border-radius: 10px; background: var(--sunken); }
+.mini-clock.running { background: var(--accent); color: var(--accent-ink); }
+.mini-clock.low { background: var(--bad); color: #fff; }
+
+/* Host: dado */
+.host-grid { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.die-wrap { perspective: 600px; }
+.die { width: 112px; height: 112px; border-radius: 22px; background: var(--die); color: var(--die-ink); display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: 68px; line-height: 1; box-shadow: inset 0 -7px 0 rgba(0,0,0,.16), inset 0 3px 0 rgba(255,255,255,.4), var(--shadow); transform-style: preserve-3d; }
+.die.rolling { animation: tumble .7s cubic-bezier(.3,.7,.3,1); }
+.die.blank { font-size: 44px; opacity: .9; }
+@keyframes tumble {
+  0% { transform: rotateX(0) rotateZ(0) scale(1); }
+  30% { transform: rotateX(200deg) rotateZ(-25deg) scale(.86); }
+  65% { transform: rotateX(340deg) rotateZ(12deg) scale(1.06); }
+  100% { transform: rotateX(360deg) rotateZ(0) scale(1); }
+}
+.switch { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
+.switch input { width: 22px; height: 22px; accent-color: var(--accent); }
+
+/* Temporizador */
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--sunken); padding: 4px; border-radius: 12px; }
+.seg button { min-height: 44px; border-radius: 9px; font-weight: 700; font-size: 14px; line-height: 1.15; color: var(--muted); }
+.seg button small { display: block; font-weight: 400; font-size: 12px; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.seg button:disabled { opacity: .5; }
+.clock { font-family: var(--f-display); font-weight: 800; font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; text-align: center; letter-spacing: -.02em; }
+.clock.low { color: var(--bad); }
+.bar { height: 6px; border-radius: 3px; background: var(--sunken); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); transition: width .25s linear; }
+.bar.low i { background: var(--bad); }
+.timer-btns { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+
+/* Invitado: letra */
+.guest-letter { display: flex; align-items: center; gap: 14px; }
+.guest-letter input { width: 72px; height: 72px; border-radius: 16px; border: 2px dashed var(--line); background: var(--die); color: var(--die-ink); text-align: center; font-family: var(--f-display); font-weight: 800; font-size: 42px; text-transform: uppercase; }
+.guest-letter input:placeholder-shown { background: var(--sunken); color: var(--muted); }
+
+/* Hoja de respuestas */
+.sheet { list-style: none; margin: 0; padding: 0; background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+.sheet li { display: grid; grid-template-columns: 32px 1fr; gap: 4px 10px; padding: 12px 14px; border-top: 1px solid var(--line); scroll-margin-top: 90px; scroll-margin-bottom: 120px; }
+.sheet li:first-child { border-top: 0; }
+.num { font-family: var(--f-display); font-weight: 800; color: var(--accent); font-size: 18px; text-align: right; padding-top: 1px; font-variant-numeric: tabular-nums; }
+.cat { font-weight: 700; font-size: 15px; min-width: 0; }
+#answers-form { margin: 0; }
+.answer { grid-column: 2; width: 100%; min-height: 46px; border: 0; border-bottom: 2px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-size: 18px; padding: 6px 2px; border-radius: 0; }
+.answer:focus { outline: none; border-bottom-color: var(--accent); background: var(--sunken); }
+.answer:disabled { color: var(--ink); opacity: 1; -webkit-text-fill-color: var(--ink); border-bottom-style: dotted; }
+
+/* Puntuación */
+.scored { grid-column: 2; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.word { font-size: 18px; min-width: 0; overflow-wrap: anywhere; flex: 1 1 120px; }
+.word.none { color: var(--muted); font-style: italic; }
+.chips { display: inline-grid; grid-template-columns: repeat(3, 52px); gap: 6px; }
+.chip { min-height: 44px; border-radius: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--surface); color: var(--muted); font-variant-numeric: tabular-nums; transition: transform .08s ease; }
+.chip:active { transform: scale(.94); }
+.chip.c0[aria-pressed="true"] { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.chip.c5[aria-pressed="true"] { background: var(--mid-soft); border-color: var(--mid); color: var(--mid); }
+.chip.c10[aria-pressed="true"] { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.legend b { font-variant-numeric: tabular-nums; }
+.dock { position: sticky; bottom: 0; z-index: 5; margin-inline: -16px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--bg); border-top: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+.subtotal { flex: 1; min-width: 0; }
+.subtotal b { font-family: var(--f-display); font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; display: block; }
+.subtotal small { color: var(--muted); font-size: 13px; }
+
+/* Tabla tipo Excel */
+.xl-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.xl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 15px; }
+.xl th, .xl td { border: 1px solid var(--line); padding: 10px; text-align: left; white-space: nowrap; }
+.xl td:last-child, .xl th:last-child { white-space: normal; min-width: 92px; }
+.xl thead th { background: var(--sunken); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); position: relative; }
+.xl .rn { width: 36px; text-align: center; color: var(--muted); background: var(--sunken); font-size: 12px; }
+.xl td.pts { text-align: right; font-weight: 700; }
+.xl tfoot td { font-weight: 800; background: var(--sunken); border-top: 2px solid var(--ink); }
+.xl tfoot td.pts { color: var(--accent); font-size: 17px; }
+.xl small { color: var(--muted); display: block; font-size: 12px; }
+.empty { text-align: center; padding: 28px 16px; color: var(--muted); }
+.empty b { color: var(--ink); display: block; font-size: 17px; margin-bottom: 4px; }
+
+.used { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-inline: 4px; }
+.used .eyebrow { margin-right: 4px; }
+.used-l { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; background: var(--sunken); color: var(--muted); font-family: var(--f-display); font-weight: 800; font-size: 15px; }
+.answer.locked { border-bottom-style: dotted; color: var(--muted); }
+.warn-tag { display: inline-block; margin-left: 8px; font-size: 12px; font-style: normal; font-weight: 700; color: var(--mid); background: var(--mid-soft); border-radius: 6px; padding: 1px 7px; vertical-align: 2px; white-space: nowrap; }
+.timeup { place-items: center; }
+.timeup-card { text-align: center; }
+.timeup-big { font-family: var(--f-display); font-weight: 800; font-size: 56px; line-height: 1; color: var(--bad); margin-bottom: 8px; animation: pop .35s ease; }
+
+.custom-time { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; margin: 0; }
+.custom-time label { font-size: 14px; font-weight: 700; color: var(--muted); }
+.custom-in { min-height: 44px; min-width: 0; border-radius: 10px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; font-size: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.custom-time.active .custom-in { border-color: var(--accent); }
+.custom-time .btn { min-height: 44px; }
+.custom-msg { color: var(--muted); font-size: 12px; margin-top: -4px; }
+.custom-msg.err { color: var(--bad); font-weight: 700; }
+.guide { margin: 0; font-size: 15px; }
+.lg0 { color: var(--bad); } .lg5 { color: var(--mid); } .lg10 { color: var(--ok); }
+.vote-note { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; background: var(--sunken); border-radius: 10px; padding: 10px 12px; }
+.vote-icon { font-size: 18px; line-height: 1.2; }
+.flag { display: inline; }
+.warn-wrap { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: 8px; vertical-align: 2px; }
+.warn-wrap .warn-tag { margin-left: 0; }
+.accept-btn { font-size: 12px; font-weight: 700; color: var(--accent); border: 1.5px solid var(--accent); border-radius: 6px; padding: 2px 8px; min-height: 28px; }
+.accept-btn:active { transform: scale(.95); }
+.ok-tag { display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 700; color: var(--ok); background: var(--ok-soft); border-radius: 6px; padding: 2px 8px; vertical-align: 2px; min-height: 24px; }
+.backup .row .btn { flex: 1 1 140px; }
+
+.btn.danger-ghost { background: transparent; color: var(--bad); border: 2px solid var(--bad-soft); }
+
+/* Avisos */
+.banner { border-radius: var(--r); padding: 14px 16px; background: var(--bad); color: #fff; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; animation: pop .35s ease; }
+.banner b { font-family: var(--f-display); font-size: 22px; flex: 1; }
+.banner .btn { background: #fff; color: var(--bad); }
+@keyframes pop { from { transform: scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
+.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(8,12,24,.55); display: grid; place-items: end center; padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.dialog { width: 100%; max-width: 440px; background: var(--surface); color: var(--ink); border-radius: 18px; padding: 20px; box-shadow: var(--shadow); animation: pop .2s ease; }
+.dialog h3 { font-size: 21px; margin-bottom: 6px; }
+.dialog p { margin: 0 0 16px; color: var(--muted); }
+.dialog .row { justify-content: flex-end; }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 700; box-shadow: var(--shadow); animation: pop .2s ease; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<div id="app"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   Scattergories · offline para jugar en grupo
+   Todo el estado vive en localStorage; no hay red ni servidor.
+   Componentes: RoleSelector, HostControls, GuestLetter,
+   CategoryList, ScoreCard, ScoreTableExcel.
+   ============================================================ */
+
+/* ---------- 1. Base de datos estática de listas ---------- */
+const LISTS = [
+  ["Animales acuáticos","Ciudades europeas","Comidas que se sirven calientes","Marcas de coches","Cosas que encuentras en un hotel","Profesiones u oficios","Nombres de chica","Frutas","Deportes","Instrumentos musicales","Países","Cosas que llevas en la mochila"],
+  ["Nombres de chico","Verduras y hortalizas","Ríos","Prendas de ropa","Películas","Animales de granja","Utensilios de cocina","Capitales del mundo","Bebidas","Partes del cuerpo","Colores","Cosas que hay en una playa"],
+  ["Insectos","Postres","Marcas de ropa","Juegos de mesa","Cantantes o grupos","Herramientas","Cosas redondas","Ciudades de España","Personajes de dibujos animados","Flores y plantas","Cosas que hay en un colegio","Verbos"],
+  ["Aves","Platos típicos españoles","Series de televisión","Medios de transporte","Muebles","Cosas frías","Apellidos","Idiomas","Superhéroes o villanos","Asignaturas","Electrodomésticos","Excusas para llegar tarde"],
+  ["Mamíferos","Quesos o embutidos","Deportistas famosos","Palabras de más de 8 letras","Montañas o cordilleras","Cosas que dan miedo","Accesorios y complementos","Marcas de comida","Cosas que hay en un hospital","Adjetivos para describir a alguien","Juguetes","Monumentos famosos"],
+  ["Reptiles o anfibios","Especias y condimentos","Actores o actrices","Cosas que se rompen","Islas","Marcas de tecnología","Cosas de un cumpleaños","Enfermedades","Bailes","Destinos de vacaciones","Cosas que hay en un baño","Cosas que se hacen en verano"],
+  ["Animales de la selva","Comida rápida","Escritores","Cosas que vuelan","Provincias o regiones","Cosas que hay en un taller","Cosas que hay en un jardín","Palabras en inglés que usamos en español","Prendas de invierno","Videojuegos","Cosas que hay en una oficina","Fenómenos meteorológicos"],
+  ["Peces","Frutos secos","Personajes históricos","Cosas que pican","Ciudades de América","Programas de televisión","Cosas que se guardan en la nevera","Mascotas","Cosas que huelen bien","Ingredientes de una pizza","Equipos de fútbol","Regalos"],
+  ["Animales peligrosos","Cosas que se desayunan","Pintores o artistas","Calzado","Palabras de 4 letras","Cosas que hay en un supermercado","Marcas de bebidas","Cosas que hay en el cielo","Objetos de valor","Cosas que se hacen con las manos","Personajes de cuentos","Tiendas o comercios"],
+  ["Razas de perro","Comida italiana","Políticos","Cosas que hacen ruido","Mares u océanos","Partes de un coche","Insultos cariñosos","Deportes con pelota","Cosas pegajosas","Partes de una casa","Canciones","Cosas que hay en un bolso"],
+  ["Animales pequeños","Salsas","Personajes de películas","Cosas que se pueden abrir","Calles o plazas famosas","Cosas de una boda","Materiales","Profesiones peligrosas","Cosas que hay en un parque","Cócteles o combinados","Dioses o seres mitológicos","Productos de higiene"],
+  ["Animales de cuatro patas","Pasteles y dulces","Marcas de deporte","Cosas que tienen ruedas","Cosas que hay en un aeropuerto","Ciudades de Asia","Cantantes en español","Árboles","Cosas de Navidad","Cosas de un botiquín","Nombres de mascota","Profesiones del espectáculo"],
+  ["Animales del zoo","Comida mexicana o latina","Cosas que hay en un museo","Deportes olímpicos","Cosas brillantes","Países de América","Marcas de cosmética","Lugares de una ciudad","Cosas que se tiran a la basura","Emociones o sentimientos","Personajes de videojuegos","Cosas que hay en un tren"],
+  ["Bichos que hay en casa","Tapas","Cosas que se coleccionan","Profesiones con uniforme","Ciudades con playa","Cosas que tienen botones","Personajes de libros","Cosas que se hacen en invierno","Cosas que hay en un gimnasio","Sabores de helado","Palabras de amor","Cosas verdes"],
+  ["Animales marinos","Comida que se come con las manos","Cosas que hay en una granja","Aplicaciones o redes sociales","Cosas blancas","Material de papelería","Famosos","Cosas que tienen alas","Lugares donde se espera","Cosas para ir de acampada","Regalos de San Valentín","Comunidades autónomas o regiones"],
+  ["Animales con rayas o manchas","Ingredientes de una ensalada","Cosas que se compran en una farmacia","Deportes de riesgo","Cosas que hay en un barco","Ciudades del mundo","Personajes de Disney","Cosas rojas","Oficios antiguos","Marcas famosas","Cosas que se hacen en una fiesta","Cosas que se olvidan fácilmente"],
+  ["Animales que vuelan","Cosas que se hornean","Cosas de un castillo","Profesiones sanitarias","Cosas con pantalla","Lugares turísticos","Grupos de música en inglés","Cosas que hay en el mar","Palabras sobre el tiempo","Objetos de cristal","Cosas que se cuelgan","Nombres de pueblos"],
+  ["Animales de la sabana","Cosas que se untan","Cosas que se ponen en la cabeza","Cosas que tienen cola","Juegos de cartas o de patio","Cosas de un dormitorio","Personajes de ficción","Sentimientos o cualidades","Profesiones del campo","Cosas que ves en la calle","Comidas del mundo","Ciudades con río"],
+  ["Animales nocturnos","Golosinas","Cosas que tienen agujeros","Cosas que hay en un circo","Presentadores o famosos de la tele","Cosas que se lavan","Lugares para una primera cita","Cosas que se pueden medir","Cosas que se compran por internet","Cosas que se hacen en un viaje","Ciudades de Italia o Francia","Palabras del fútbol"],
+  ["Animales del bosque","Platos de cuchara","Cosas que pesan mucho","Premios o trofeos","Lugares de trabajo","Cosas que tienen teclas","Cosas que se llevan a una fiesta","Inventos","Cosas que hay en una biblioteca","Deportes acuáticos","Cosas que hacen reír","Personajes de series"]
+];
+
+/* ---------- 2. Persistencia (localStorage con try/catch) ---------- */
+const KEYS = { prefs: "tf.prefs.v1", round: "tf.round.v1", history: "tf.history.v1", game: "tf.game.v1" };
+const store = {
+  get(k, fallback) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+
+const TIMER_MODES = [
+  { secs: 120, name: "Rápido", label: "2:00" },
+  { secs: 150, name: "Estándar", label: "2:30" },
+  { secs: 180, name: "Largo", label: "3:00" }
+];
+const HARD = new Set(["K", "Ñ", "Q", "W", "X", "Y", "Z"]);
+const ALPHABET = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split("");
+
+let prefs = Object.assign({ list: 1, includeHard: false, noRepeat: true, timer: 150 }, store.get(KEYS.prefs, {}));
+let round = store.get(KEYS.round, null);   // ronda en curso o null
+let history = store.get(KEYS.history, []); // [{id, list, points, date, round}]
+let game = store.get(KEYS.game, null);     // partida en curso: {id, role, started} o null
+if (round && !game) game = { id: Date.now(), role: round.role, started: new Date().toISOString() };
+let screen = round ? "game" : game ? "lists" : "home";
+let tickHandle = null, wakeLock = null, audioCtx = null;
+
+const savePrefs = () => store.set(KEYS.prefs, prefs);
+const saveRound = () => round ? store.set(KEYS.round, round) : store.del(KEYS.round);
+const saveHistory = () => store.set(KEYS.history, history);
+const saveGame = () => game ? store.set(KEYS.game, game) : store.del(KEYS.game);
+const gameRows = () => game ? history.filter(r => r.gameId === game.id) : [];
+
+/* ---------- utilidades ---------- */
+const app = document.getElementById("app");
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "class") el.className = v;
+    else if (k === "html") el.innerHTML = v;
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : String(kid));
+  return el;
+}
+const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+/* "1:30" → 90 · "90s" → 90 · "2" → 120 · "1,5" → 90. Devuelve null si no es válido (10 s a 30 min). */
+function parseDuration(txt) {
+  const v = String(txt).trim().toLowerCase().replace(",", ".");
+  let secs = null, m;
+  if ((m = v.match(/^(\d{1,2})[:.'](\d{1,2})$/)) && v.includes(":")) secs = +m[1] * 60 + +m[2];
+  else if ((m = v.match(/^(\d{1,4})\s*s(eg)?$/))) secs = +m[1];
+  else if ((m = v.match(/^(\d{1,2}(\.\d+)?)\s*(m|min)?$/))) secs = Math.round(+m[1] * 60);
+  if (secs == null || isNaN(secs) || secs < 10 || secs > 1800) return null;
+  return secs;
+}
+const sum = arr => arr.reduce((a, b) => a + (b || 0), 0);
+const nextRoundNumber = () => (game ? history.filter(r => r.gameId === game.id).length : history.length) + 1;
+/* Quita tildes para comparar la inicial (Á = A), pero la Ñ se mantiene como letra propia. */
+const initialOf = w => { const c = w.trim().charAt(0).toUpperCase(); return c === "Ñ" ? "Ñ" : c.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); };
+const usedLetters = () => game ? (game.letters || []) : [];
+
+function toast(msg) {
+  const t = h("div", { class: "toast", role: "status" }, msg);
+  document.body.append(t);
+  setTimeout(() => t.remove(), 2200);
+}
+function confirmDialog({ title, text, ok, danger }) {
+  return new Promise(resolve => {
+    const close = v => { ov.remove(); resolve(v); };
+    const ov = h("div", { class: "overlay", onclick: e => { if (e.target === ov) close(false); } },
+      h("div", { class: "dialog", role: "dialog", "aria-modal": "true" },
+        h("h3", null, title), h("p", null, text),
+        h("div", { class: "row" },
+          h("button", { class: "btn", onclick: () => close(false) }, "Cancelar"),
+          h("button", { class: "btn " + (danger ? "danger" : "primary"), onclick: () => close(true) }, ok))));
+    document.body.append(ov);
+    ov.querySelector(".btn:last-child").focus();
+  });
+}
+
+/* ---------- sonido y vibración ---------- */
+function ensureAudio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  } catch (e) {}
+}
+function blip() {
+  try {
+    ensureAudio();
+    const t0 = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "sine"; o.frequency.value = 660;
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.18, t0 + .01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + .12);
+    o.connect(g).connect(audioCtx.destination); o.start(t0); o.stop(t0 + .14);
+  } catch (e) {}
+  try { navigator.vibrate && navigator.vibrate(40); } catch (e) {}
+}
+function alarm() {
+  try {
+    ensureAudio();
+    const t0 = audioCtx.currentTime;
+    [0, .28, .56, 1.0, 1.28, 1.56].forEach((d, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "square"; o.frequency.value = i % 3 === 2 ? 1320 : 880;
+      g.gain.setValueAtTime(0.0001, t0 + d);
+      g.gain.exponentialRampToValueAtTime(0.25, t0 + d + .02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + d + .22);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(t0 + d); o.stop(t0 + d + .25);
+    });
+  } catch (e) {}
+  try { navigator.vibrate && navigator.vibrate([400, 150, 400, 150, 700]); } catch (e) {}
+}
+async function keepAwake(on) {
+  try {
+    if (on && !wakeLock && navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen");
+    if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) { wakeLock = null; }
+}
+
+/* ---------- modelo de ronda ---------- */
+function newRound(list) {
+  prefs.list = list; savePrefs();
+  round = {
+    role: game.role, list, gameId: game.id, letter: "", phase: "play",
+    answers: Array(12).fill(""), scores: Array(12).fill(null),
+    timer: { total: prefs.timer, remaining: prefs.timer, endAt: null, done: false }
+  };
+  saveRound();
+}
+function timerRemaining() {
+  const t = round.timer;
+  if (t.endAt) return Math.max(0, Math.ceil((t.endAt - Date.now()) / 1000));
+  return t.remaining;
+}
+
+/* ============================================================
+   Pantallas
+   ============================================================ */
+function go(next) { screen = next; render(); window.scrollTo(0, 0); }
+
+function render() {
+  clearInterval(tickHandle); tickHandle = null;
+  app.replaceChildren();
+  if (screen === "home") app.append(RoleSelector());
+  else if (screen === "lists" && game) app.append(ListPicker());
+  else if (screen === "game" && round) app.append(round.phase === "score" ? ScoreScreen() : GameScreen());
+  else if (screen === "history") app.append(ScoreTableExcel());
+  else { screen = "home"; app.append(RoleSelector()); }
+}
+
+/* Borra la partida en curso: la ronda sin guardar y las rondas ya guardadas de esta partida. */
+async function deleteGame() {
+  if (!game) return;
+  const rows = gameRows();
+  const pts = sum(rows.map(r => r.points));
+  const ok = await confirmDialog({
+    title: "¿Borrar la partida en curso?",
+    text: rows.length
+      ? `Se borrarán ${rows.length} ${rows.length === 1 ? "ronda guardada" : "rondas guardadas"} (${pts} pts)${round ? " y la ronda sin terminar" : ""}. Las partidas anteriores no se tocan. No se puede deshacer.`
+      : `${round ? "Se borrará la ronda sin terminar. " : ""}Volverás a elegir Host o Invitado.`,
+    ok: "Borrar partida", danger: true });
+  if (!ok) return;
+  const id = game.id;
+  history = history.filter(r => r.gameId !== id); saveHistory();
+  game = null; round = null; saveGame(); saveRound(); keepAwake(false);
+  go("home"); toast("Partida borrada");
+}
+
+/* ---------- A. RoleSelector: primero se elige el rol ---------- */
+function RoleSelector() {
+  const start = async role => {
+    if (game) {
+      const ok = await confirmDialog({ title: "¿Empezar una partida nueva?", text: round ? `La ronda sin guardar de la Lista ${round.list} se perderá. Los puntos ya guardados se quedan en la tabla histórica.` : "La partida actual termina. Sus puntos se quedan en la tabla histórica.", ok: "Empezar nueva", danger: !!round });
+      if (!ok) return;
+    }
+    ensureAudio();
+    round = null; saveRound();
+    game = { id: Date.now(), role, started: new Date().toISOString() }; saveGame();
+    go("lists");
+  };
+  const played = gameRows();
+  return h("div", { class: "stack" },
+    h("header", { class: "brand" },
+      h("div", { class: "brand-die", "aria-hidden": "true" }, "S"),
+      h("div", null, h("h1", null, "Scattergories"), h("p", null, "Para jugar juntos, cada uno con su móvil"))),
+    game && h("div", { class: "panel resume stack" },
+      h("div", null, h("div", { class: "eyebrow" }, "Partida en curso"),
+        h("b", null, `${game.role === "host" ? "Host" : "Invitado"} · ${played.length} ${played.length === 1 ? "lista jugada" : "listas jugadas"} · ${sum(played.map(r => r.points))} pts`)),
+      h("button", { class: "btn primary block", onclick: () => go(round ? "game" : "lists") }, round ? `Continuar ronda (Lista ${round.list})` : "Continuar partida"),
+      h("button", { class: "btn block danger-ghost", onclick: deleteGame }, "Borrar partida en curso")),
+    h("p", { class: "field-label", style: "margin:4px 0 0" }, "¿Cómo juegas?"),
+    h("div", { class: "roles" },
+      h("button", { class: "role host", onclick: () => start("host") },
+        h("span", { class: "glyph", "aria-hidden": "true" }, "A–Z"),
+        h("div", null, h("strong", null, "Modo Host"), h("span", null, "Anfitrión: tira el dado y lleva el tiempo"))),
+      h("button", { class: "role guest", onclick: () => start("guest") },
+        h("span", { class: "glyph", "aria-hidden": "true" }, "✎"),
+        h("div", null, h("strong", null, "Modo Invitado"), h("span", null, "Juega la lista que diga el Host")))),
+    h("button", { class: "btn block", onclick: () => go("history") }, "Tabla histórica de puntuaciones"),
+    h("p", { class: "muted", style: "font-size:13px;margin:4px 0 0" }, "Después eliges la lista. En una misma partida puedes jugar varias listas y los puntos se van sumando."));
+}
+
+/* ---------- A2. ListPicker: elegir lista dentro de la partida ---------- */
+function ListPicker() {
+  const rows = gameRows();
+  const byList = {};
+  rows.forEach(r => { byList[r.list] = (byList[r.list] || 0) + r.points; });
+  const total = sum(rows.map(r => r.points));
+  const peek = h("p", { class: "muted", style: "font-size:13px;margin:0" });
+  const showPeek = n => { peek.textContent = `Lista ${n}: ` + LISTS[n - 1].slice(0, 3).join(", ") + "…"; };
+  showPeek(prefs.list);
+
+  const pick = async n => {
+    if (round) {
+      const ok = await confirmDialog({ title: `¿Cambiar a la Lista ${n}?`, text: `La ronda sin guardar de la Lista ${round.list} se perderá.`, ok: "Cambiar", danger: true });
+      if (!ok) return;
+    }
+    ensureAudio();
+    newRound(n);
+    go("game");
+  };
+  const end = async () => {
+    const ok = await confirmDialog({ title: "¿Terminar la partida?", text: `Os quedáis con ${total} pts. Todo lo guardado sigue en la tabla histórica.`, ok: "Terminar partida" });
+    if (!ok) return;
+    game = null; round = null; saveGame(); saveRound();
+    go("home");
+  };
+
+  return h("div", { class: "stack" },
+    h("div", { class: "topbar" },
+      h("button", { class: "btn ghost", onclick: () => go("home") }, "‹ Inicio"),
+      h("div", { class: "title" }, h("b", null, "Elige la lista"), h("small", null, game.role === "host" ? "Host · di en voz alta qué lista jugáis" : "Invitado · elige la que diga el Host"))),
+    round && h("div", { class: "panel resume stack" },
+      h("b", null, `Ronda sin terminar de la Lista ${round.list}`),
+      h("button", { class: "btn primary block", onclick: () => go("game") }, "Continuar ronda")),
+    h("section", { class: "panel stack" },
+      h("div", { class: "row", style: "justify-content:space-between" },
+        h("div", null, h("div", { class: "eyebrow" }, "Esta partida"), h("b", { class: "game-total" }, `${total} pts`)),
+        h("span", { class: "muted", style: "font-size:14px" }, `${rows.length} ${rows.length === 1 ? "lista jugada" : "listas jugadas"}`)),
+      rows.length ? h("ul", { class: "list-peek" }, rows.map(r => h("li", null, `Lista ${r.list} · ${r.points} pts`))) : null),
+    h("div", { class: "list-grid", role: "list" },
+      LISTS.map((_, i) => {
+        const n = i + 1, pts = byList[n];
+        return h("button", { class: "list-btn" + (pts != null ? " played" : "") + (round && round.list === n ? " current" : ""), role: "listitem",
+          onclick: () => pick(n), onfocus: () => showPeek(n), onpointerenter: () => showPeek(n), "aria-label": `Lista ${n}${pts != null ? `, jugada, ${pts} puntos` : ""}` },
+          h("span", { class: "list-n" }, n), h("small", null, pts != null ? `${pts} pts` : "Lista"));
+      })),
+    peek,
+    h("div", { class: "row", style: "justify-content:space-between" },
+      h("button", { class: "btn", onclick: () => go("history") }, "Tabla histórica"),
+      h("button", { class: "btn", onclick: end }, "Terminar partida")),
+    h("button", { class: "btn block danger-ghost", onclick: deleteGame }, "Borrar partida en curso"));
+}
+
+/* ---------- Barra superior de la ronda ---------- */
+function TopBar() {
+  const letter = h("div", { class: "mini-letter" + (round.letter ? "" : " empty"), "aria-label": "Letra" }, round.letter || "?");
+  const clock = round.role === "host" ? h("div", { class: "mini-clock", "aria-hidden": "true" }, fmt(timerRemaining())) : null;
+  const bar = h("div", { class: "topbar" },
+    h("button", { class: "btn ghost", onclick: () => go("lists"), "aria-label": "Volver a las listas" }, "‹ Listas"),
+    h("div", { class: "title" }, h("b", null, `Lista ${round.list}`), h("small", null, `Ronda ${nextRoundNumber()} · ${round.role === "host" ? "Host" : "Invitado"}`)),
+    clock, letter);
+  bar.setLetter = l => { letter.textContent = l || "?"; letter.classList.toggle("empty", !l); };
+  bar.clock = clock;
+  return bar;
+}
+
+/* ---------- C. Pantalla de juego ---------- */
+function GameScreen() {
+  const top = TopBar();
+  const finish = async (skipConfirm) => {
+    if (skipConfirm !== true) {
+      const ok = await confirmDialog({ title: "¿Terminar la ronda?", text: "Se bloquean las respuestas y pasas a puntuar cada categoría.", ok: "Ir a puntuación" });
+      if (!ok) return;
+    }
+    if (round.timer.endAt) { round.timer.remaining = timerRemaining(); round.timer.endAt = null; }
+    keepAwake(false);
+    round.phase = "score";
+    round.scores = round.answers.map((a, i) => a.trim() ? round.scores[i] : 0);
+    saveRound();
+    render(); window.scrollTo(0, 0);
+  };
+  const children = [top];
+  if (round.role === "host") children.push(HostControls(top, () => finish(true)));
+  else children.push(GuestLetter(top));
+  children.push(CategoryList(false));
+  children.push(h("button", { class: "btn primary block", style: "min-height:56px", onclick: () => finish() }, "Terminar ronda · Ir a puntuación"));
+  return h("div", { class: "stack" }, children);
+}
+
+/* ---------- B. HostControls: dado + temporizador ---------- */
+function HostControls(top, finish) {
+  /* Dado */
+  const die = h("div", { class: "die" + (round.letter ? "" : " blank"), role: "img", "aria-live": "polite", "aria-label": round.letter ? `Letra ${round.letter}` : "Sin letra" }, round.letter || "?");
+  const pool = () => {
+    const base = ALPHABET.filter(l => prefs.includeHard || !HARD.has(l));
+    if (!prefs.noRepeat) return base;
+    const fresh = base.filter(l => !usedLetters().includes(l));
+    return fresh.length ? fresh : base;   // si ya han salido todas, vuelve a empezar
+  };
+  let rolling = false;
+  const roll = () => {
+    if (rolling) return;
+    rolling = true;
+    const letters = pool();
+    let pick = letters[Math.floor(Math.random() * letters.length)];
+    if (letters.length > 1) while (pick === round.letter) pick = letters[Math.floor(Math.random() * letters.length)];
+    die.classList.remove("rolling", "blank"); void die.offsetWidth; die.classList.add("rolling");
+    let n = 0;
+    const spin = setInterval(() => { die.textContent = letters[Math.floor(Math.random() * letters.length)]; if (++n > 8) clearInterval(spin); }, 70);
+    setTimeout(() => {
+      clearInterval(spin);
+      die.textContent = pick; die.setAttribute("aria-label", `Letra ${pick}`);
+      round.letter = pick; saveRound(); top.setLetter(pick);
+      try { navigator.vibrate && navigator.vibrate(30); } catch (e) {}
+      rolling = false;
+    }, 700);
+  };
+  const hardToggle = h("input", { type: "checkbox", id: "hard-toggle", checked: prefs.includeHard, onchange: e => { prefs.includeHard = e.target.checked; savePrefs(); } });
+  const repeatToggle = h("input", { type: "checkbox", id: "repeat-toggle", checked: prefs.noRepeat, onchange: e => { prefs.noRepeat = e.target.checked; savePrefs(); } });
+  const used = usedLetters();
+
+  /* Temporizador */
+  const clock = h("div", { class: "clock", role: "timer", "aria-live": "off" }, fmt(timerRemaining()));
+  const barFill = h("i");
+  const bar = h("div", { class: "bar" }, barFill);
+  const banner = h("div", { class: "banner", role: "alert", hidden: true },
+    h("b", null, "¡Tiempo! Boli arriba"),
+    h("button", { class: "btn", onclick: finish }, "Ir a puntuación"));
+  const startBtn = h("button", { class: "btn primary" });
+  const resetBtn = h("button", { class: "btn" }, "Reiniciar");
+  const setDuration = secs => { prefs.timer = secs; savePrefs(); Object.assign(round.timer, { total: secs, remaining: secs, endAt: null, done: false }); saveRound(); paint(); };
+  const modeBtns = TIMER_MODES.map(m => h("button", {
+    type: "button", "aria-pressed": String(round.timer.total === m.secs), onclick: () => setDuration(m.secs)
+  }, m.name, h("small", null, m.label)));
+  /* Tiempo personalizado: acepta "1:00", "1:30", "90s" o minutos sueltos ("2", "1,5"). */
+  const isPreset = secs => TIMER_MODES.some(m => m.secs === secs);
+  const customIn = h("input", { id: "custom-time", class: "custom-in", type: "text", inputmode: "decimal", enterkeyhint: "done", autocomplete: "off",
+    placeholder: "1:00", "aria-label": "Tiempo personalizado (minutos:segundos)", value: isPreset(round.timer.total) ? "" : fmt(round.timer.total) });
+  const customMsg = h("small", { class: "custom-msg", "aria-live": "polite" }, "Entre 0:10 y 30:00");
+  const applyCustom = e => {
+    e && e.preventDefault();
+    const secs = parseDuration(customIn.value);
+    if (!secs) { customMsg.textContent = "Escribe un tiempo como 1:00 o 1:45"; customMsg.classList.add("err"); customIn.focus(); return; }
+    customMsg.classList.remove("err"); customMsg.textContent = `Ronda de ${fmt(secs)}`;
+    customIn.value = fmt(secs); customIn.blur(); setDuration(secs);
+  };
+  const customBtn = h("button", { type: "submit", class: "btn" }, "Usar");
+  const customForm = h("form", { class: "custom-time", onsubmit: applyCustom, novalidate: true },
+    h("label", { for: "custom-time" }, "Otro tiempo"), customIn, customBtn);
+
+  function paint() {
+    const t = round.timer, rem = timerRemaining(), running = !!t.endAt;
+    const low = rem <= 10 && (running || t.done);
+    clock.textContent = fmt(rem); clock.classList.toggle("low", low);
+    barFill.style.width = (rem / t.total * 100) + "%"; bar.classList.toggle("low", low);
+    startBtn.textContent = running ? "Pausar" : (rem < t.total && rem > 0 ? "Reanudar" : "Iniciar tiempo");
+    startBtn.disabled = rem === 0;
+    modeBtns.forEach((b, i) => { b.setAttribute("aria-pressed", String(t.total === TIMER_MODES[i].secs)); b.disabled = running; });
+    customIn.disabled = customBtn.disabled = running;
+    customForm.classList.toggle("active", !isPreset(t.total));
+    if (isPreset(t.total) && document.activeElement !== customIn) customIn.value = "";
+    banner.hidden = !t.done;
+    lockAnswers(t.done);
+    if (top.clock) { top.clock.textContent = fmt(rem); top.clock.classList.toggle("running", running && !low); top.clock.classList.toggle("low", low); }
+  }
+  let lastBeep = null;
+  function tick() {
+    const t = round.timer, rem = timerRemaining();
+    if (t.endAt && rem > 0 && rem <= 5 && rem !== lastBeep) { lastBeep = rem; blip(); }
+    if (t.endAt && rem === 0) {
+      t.endAt = null; t.remaining = 0; t.done = true; saveRound();
+      clearInterval(tickHandle); tickHandle = null; keepAwake(false); alarm();
+      timeUpOverlay(finish);
+    }
+    paint();
+  }
+  startBtn.addEventListener("click", () => {
+    const t = round.timer;
+    ensureAudio();
+    if (t.endAt) { t.remaining = timerRemaining(); t.endAt = null; clearInterval(tickHandle); tickHandle = null; keepAwake(false); }
+    else { t.endAt = Date.now() + t.remaining * 1000; tickHandle = setInterval(tick, 250); keepAwake(true); try { navigator.vibrate && navigator.vibrate(60); } catch (e) {} }
+    saveRound(); paint();
+  });
+  resetBtn.addEventListener("click", () => {
+    Object.assign(round.timer, { remaining: round.timer.total, endAt: null, done: false });
+    clearInterval(tickHandle); tickHandle = null; keepAwake(false); saveRound(); paint();
+  });
+  if (round.timer.endAt) { tickHandle = setInterval(tick, 250); keepAwake(true); }
+  queueMicrotask(tick);
+
+  return h("div", { class: "stack" },
+    h("section", { class: "panel host-grid", "aria-label": "Dado de letras" },
+      h("div", { class: "die-wrap" }, die),
+      h("div", { class: "stack" },
+        h("div", null, h("div", { class: "eyebrow" }, "Dado de letras"), h("div", { class: "muted", style: "font-size:14px" }, "Tira cuantas veces queráis.")),
+        h("button", { class: "btn primary", onclick: roll }, "Tirar dado"),
+        h("label", { class: "switch", for: "hard-toggle" }, hardToggle, "Incluir K, Ñ, Q, W, X, Y, Z"),
+        h("label", { class: "switch", for: "repeat-toggle" }, repeatToggle, "No repetir letras de esta partida"))),
+    used.length ? h("div", { class: "used", "aria-label": "Letras ya jugadas en esta partida" }, h("span", { class: "eyebrow" }, "Ya han salido"), used.map(l => h("span", { class: "used-l" }, l))) : null,
+    h("section", { class: "panel stack", "aria-label": "Temporizador" },
+      h("div", { class: "seg", role: "group", "aria-label": "Duración" }, modeBtns),
+      customForm, customMsg,
+      clock, bar,
+      h("div", { class: "timer-btns" }, startBtn, resetBtn)),
+    banner);
+}
+
+/* Bloquea o desbloquea los campos cuando se acaba el tiempo (o al reiniciar el reloj). */
+function lockAnswers(locked) {
+  document.querySelectorAll(".answer").forEach(i => { i.readOnly = locked; i.classList.toggle("locked", locked); });
+  if (locked && document.activeElement && document.activeElement.classList.contains("answer")) document.activeElement.blur();
+}
+/* Aviso a pantalla completa: se ve aunque el Host esté al final de la lista. */
+function timeUpOverlay(finish) {
+  if (document.querySelector(".timeup")) return;
+  const ov = h("div", { class: "overlay timeup", role: "alertdialog", "aria-modal": "true", "aria-labelledby": "timeup-t" },
+    h("div", { class: "dialog timeup-card" },
+      h("div", { class: "timeup-big", id: "timeup-t" }, "¡Tiempo!"),
+      h("p", null, "Bolis arriba. Las respuestas quedan bloqueadas."),
+      h("div", { class: "stack" },
+        h("button", { class: "btn primary block", onclick: () => { ov.remove(); finish(); } }, "Ir a puntuación"),
+        h("button", { class: "btn block", onclick: () => ov.remove() }, "Ver mis respuestas"))));
+  document.body.append(ov);
+  ov.querySelector(".btn.primary").focus();
+}
+
+/* ---------- Invitado: letra cantada por el Host ---------- */
+function GuestLetter(top) {
+  const input = h("input", {
+    id: "guest-letter", maxlength: "1", placeholder: "?", autocomplete: "off", autocapitalize: "characters", enterkeyhint: "next", value: round.letter,
+    "aria-label": "Letra que ha dicho el Host",
+    oninput: e => { const v = e.target.value.toUpperCase().replace(/[^A-ZÑ]/g, "").slice(0, 1); e.target.value = v; round.letter = v; saveRound(); top.setLetter(v); if (v) document.getElementById("ans-0")?.focus(); }
+  });
+  return h("section", { class: "panel guest-letter" }, input,
+    h("div", null, h("div", { class: "eyebrow" }, "Letra de la ronda"), h("div", { class: "muted", style: "font-size:14px" }, "Apunta la letra que cante el Host para tenerla a la vista. El tiempo lo lleva el Host.")));
+}
+
+/* ---------- CategoryList: 12 categorías con su campo ---------- */
+function CategoryList() {
+  const cats = LISTS[round.list - 1];
+  const items = cats.map((c, i) => {
+    const input = h("input", {
+      class: "answer", id: `ans-${i}`, type: "text", value: round.answers[i], autocomplete: "off", autocorrect: "off", spellcheck: "false",
+      autocapitalize: "sentences", enterkeyhint: i < 11 ? "next" : "done", "aria-label": c,
+      placeholder: round.letter ? `${round.letter}…` : "",
+      oninput: e => { round.answers[i] = e.target.value; saveRound(); },
+      onkeydown: e => {
+        if (e.key !== "Enter" || e.isComposing) return;
+        e.preventDefault();
+        focusNext(i);
+      },
+      onfocus: e => keepVisible(e.target.closest("li"))
+    });
+    return h("li", null, h("span", { class: "num", "aria-hidden": "true" }, i + 1), h("label", { class: "cat", for: `ans-${i}` }, c), input);
+  });
+  /* El <form> hace que iOS muestre las flechas ‹ › sobre el teclado y que "Intro/Siguiente" envíe el
+     formulario en Android; en ambos casos saltamos al siguiente campo al instante, sin recargar. */
+  return h("form", { id: "answers-form", autocomplete: "off", novalidate: true, onsubmit: e => {
+      e.preventDefault();
+      const cur = document.activeElement && document.activeElement.id ? +document.activeElement.id.replace("ans-", "") : -1;
+      focusNext(isNaN(cur) ? -1 : cur);
+    } },
+    h("ol", { class: "sheet", "aria-label": `Categorías de la Lista ${round.list}` }, items),
+    h("button", { type: "submit", hidden: true, tabindex: "-1", "aria-hidden": "true" }));
+}
+/* Pasa el foco al siguiente campo de forma síncrona (dentro del mismo gesto, así el teclado no se cierra). */
+function focusNext(i) {
+  const next = document.getElementById(`ans-${i + 1}`);
+  if (next && !next.readOnly) { next.focus({ preventScroll: true }); keepVisible(next.closest("li"), true); }
+  else if (document.activeElement) document.activeElement.blur();
+}
+/* Auto-scroll: espera a que el teclado virtual cambie el viewport y centra el campo. */
+function keepVisible(el, immediate) {
+  if (immediate) {
+    const r = el.getBoundingClientRect(), vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    if (r.top < 80 || r.bottom > vh - 16) el.scrollIntoView({ block: "center" });
+  }
+  const doIt = () => {
+    const vv = window.visualViewport;
+    const r = el.getBoundingClientRect();
+    const visibleH = vv ? vv.height : window.innerHeight;
+    if (r.top < 80 || r.bottom > visibleH - 16) el.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
+  setTimeout(doIt, 280);
+  if (window.visualViewport) {
+    const once = () => { window.visualViewport.removeEventListener("resize", once); setTimeout(doIt, 50); };
+    window.visualViewport.addEventListener("resize", once);
+    setTimeout(() => window.visualViewport.removeEventListener("resize", once), 1200);
+  }
+}
+
+/* ---------- D. ScoreCard: corrección y puntos ---------- */
+function ScoreScreen() {
+  const top = TopBar();
+  const cats = LISTS[round.list - 1];
+  const totalEl = h("b", null, "0");
+  const progress = h("small");
+  const saveBtn = h("button", { class: "btn primary", style: "min-height:52px" }, "Guardar puntuación");
+
+  const update = () => {
+    totalEl.textContent = sum(round.scores) + " pts";
+    const done = round.scores.filter(s => s !== null).length;
+    progress.textContent = done === 12 ? "Subtotal de la ronda · todo corregido" : `Subtotal · ${done} de 12 corregidas`;
+  };
+
+  const rows = cats.map((c, i) => {
+    const word = round.answers[i].trim();
+    const wrongLetter = word && round.letter && initialOf(word) !== round.letter;
+    round.letterOk = round.letterOk || Array(12).fill(false);
+    const flag = h("span", { class: "flag" });
+    const paintFlag = () => {
+      if (!wrongLetter) return flag.replaceChildren();
+      flag.replaceChildren(round.letterOk[i]
+        ? h("button", { type: "button", class: "ok-tag", title: "Volver a mostrar el aviso", onclick: () => { round.letterOk[i] = false; saveRound(); paintFlag(); } }, "✓ aceptada por la mesa")
+        : h("span", { class: "warn-wrap" },
+            h("span", { class: "warn-tag" }, `no empieza por ${round.letter}`),
+            h("button", { type: "button", class: "accept-btn", onclick: () => { round.letterOk[i] = true; saveRound(); paintFlag(); } }, "Dar por válida")));
+    };
+    paintFlag();
+    const chips = [0, 5, 10].map(v => h("button", {
+      class: `chip c${v}`, "aria-pressed": String(round.scores[i] === v), "aria-label": `${v} puntos para ${c}`,
+      onclick: e => {
+        round.scores[i] = v; saveRound();
+        e.currentTarget.parentElement.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", String(b === e.currentTarget)));
+        try { navigator.vibrate && navigator.vibrate(12); } catch (err) {}
+        update();
+      }
+    }, v));
+    return h("li", null,
+      h("span", { class: "num", "aria-hidden": "true" }, i + 1),
+      h("span", { class: "cat" }, c),
+      h("div", { class: "scored" },
+        h("span", { class: "word" + (word ? "" : " none") }, word || "sin respuesta",
+          flag),
+        h("div", { class: "chips", role: "group", "aria-label": `Puntos de ${c}` }, chips)));
+  });
+
+  saveBtn.addEventListener("click", async () => {
+    const pending = round.scores.filter(s => s === null).length;
+    if (pending) {
+      const ok = await confirmDialog({ title: "Faltan categorías por puntuar", text: `Hay ${pending} sin puntuar. Contarán como 0 puntos.`, ok: "Guardar igualmente" });
+      if (!ok) return;
+    }
+    const points = sum(round.scores);
+    history.push({ id: Date.now(), list: round.list, points, date: new Date().toISOString(), round: nextRoundNumber(), gameId: round.gameId });
+    saveHistory();
+    if (game && round.letter && !(game.letters || []).includes(round.letter)) { game.letters = [...(game.letters || []), round.letter]; saveGame(); }
+    round = null; saveRound();
+    go("lists");
+    toast(points > 0 ? `Guardados ${points} pts · elige la siguiente lista` : "Ronda guardada con 0 pts (no sale en la tabla)");
+  });
+
+  update();
+  return h("div", { class: "stack" },
+    top,
+    h("div", { class: "panel stack" },
+      h("h2", { style: "font-size:22px" }, "Corrección"),
+      h("p", { class: "guide" }, "Lee tus respuestas en voz alta al grupo para comprobar duplicados. Otorga 10 pts si es única, 5 pts si está repetida, o 0 pts si no es válida."),
+      h("div", { class: "legend" },
+        h("span", null, h("b", { class: "lg0" }, "0"), " no vale o vacía"),
+        h("span", null, h("b", { class: "lg5" }, "5"), " repetida con otro"),
+        h("span", null, h("b", { class: "lg10" }, "10"), " única")),
+      h("div", { class: "vote-note", role: "note" },
+        h("span", { class: "vote-icon", "aria-hidden": "true" }, "✋"),
+        h("span", null, h("b", null, "¿Palabra dudosa? "), "La mesa decide con una votación rápida: manos arriba y gana la mayoría."))),
+    h("ol", { class: "sheet" }, rows),
+    h("button", { class: "btn block", onclick: async () => {
+      const ok = await confirmDialog({ title: "¿Volver a editar respuestas?", text: "Puedes corregir lo escrito y volver a terminar la ronda.", ok: "Editar" });
+      if (ok) { round.phase = "play"; saveRound(); render(); }
+    } }, "Volver a las respuestas"),
+    h("div", { class: "dock" }, h("div", { class: "subtotal", "aria-live": "polite" }, totalEl, progress), saveBtn));
+}
+
+/* ---------- 3. ScoreTableExcel ---------- */
+let historyScope = "game";
+function ScoreTableExcel() {
+  const scope = game ? historyScope : "all";
+  const rows = history.filter(r => r.points > 0 && (scope === "all" || r.gameId === game.id));   // regla: solo listas con más de 0 puntos
+  const total = sum(rows.map(r => r.points));
+  const dateFmt = d => { try { return new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short" }) + " · " + new Date(d).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+
+  const table = rows.length
+    ? h("div", { class: "xl-wrap" }, h("table", { class: "xl" },
+        h("thead", null, h("tr", null, h("th", { class: "rn" }, ""), h("th", null, "Lista jugada"), h("th", { style: "text-align:right" }, "Puntos"), h("th", null, "Fecha / Ronda"))),
+        h("tbody", null, rows.map((r, i) => h("tr", null,
+          h("td", { class: "rn" }, i + 1),
+          h("td", null, `Lista ${r.list}`),
+          h("td", { class: "pts" }, `${r.points} pts`),
+          h("td", null, `Ronda ${r.round}`, h("small", null, dateFmt(r.date)))))),
+        h("tfoot", null, h("tr", null, h("td", { class: "rn" }, "Σ"), h("td", null, scope === "game" ? "TOTAL PARTIDA" : "TOTAL ACUMULADO"), h("td", { class: "pts" }, `${total} pts`), h("td", null, "")))))
+    : h("div", { class: "panel empty" }, h("b", null, "Todavía no hay puntuaciones"), "Cuando guardes una ronda con puntos, aparecerá aquí con su lista, puntos y fecha.");
+
+  const exportHistory = () => {
+    const data = { app: "scattergories", version: 1, exportedAt: new Date().toISOString(), history };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = h("a", { href: url, download: `scattergories-historial-${new Date().toISOString().slice(0, 10)}.json` });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast(`Exportadas ${history.length} ${history.length === 1 ? "ronda" : "rondas"}`);
+  };
+  const fileIn = h("input", { type: "file", id: "import-file", accept: ".json,application/json,text/plain", hidden: true, onchange: async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    let rows;
+    try { rows = parseBackup(await f.text()); }
+    catch (err) { toast("Ese archivo no es una copia del historial"); return; }
+    const known = new Set(history.map(r => r.id));
+    const fresh = rows.filter(r => !known.has(r.id));
+    const ok = await confirmDialog({ title: "¿Importar historial?", text: fresh.length ? `Se añadirán ${fresh.length} ${fresh.length === 1 ? "ronda" : "rondas"} al historial de este móvil. Las que ya tienes no se duplican.` : "Todas las rondas de ese archivo ya están en este móvil.", ok: fresh.length ? "Importar" : "Vale" });
+    if (!ok || !fresh.length) return;
+    history = [...history, ...fresh].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    saveHistory(); historyScope = "all"; render(); toast(`Importadas ${fresh.length} ${fresh.length === 1 ? "ronda" : "rondas"}`);
+  } });
+
+  const clear = async () => {
+    const ok = await confirmDialog({ title: "¿Borrar todo el historial?", text: "Se eliminarán todas las puntuaciones guardadas en este móvil. No se puede deshacer.", ok: "Borrar historial", danger: true });
+    if (!ok) return;
+    history = []; saveHistory(); render(); toast("Historial borrado");
+  };
+
+  return h("div", { class: "stack" },
+    h("div", { class: "topbar" },
+      h("button", { class: "btn ghost", onclick: () => go(round ? "game" : game ? "lists" : "home") }, round ? "‹ Ronda" : game ? "‹ Listas" : "‹ Inicio"),
+      h("div", { class: "title" }, h("b", null, "Tabla histórica"), h("small", null, `${rows.length} ${rows.length === 1 ? "ronda con puntos" : "rondas con puntos"}`))),
+    game ? h("div", { class: "seg", role: "group", "aria-label": "Qué puntuaciones ver", style: "grid-template-columns:1fr 1fr" },
+      h("button", { "aria-pressed": String(scope === "game"), onclick: () => { historyScope = "game"; render(); } }, "Esta partida"),
+      h("button", { "aria-pressed": String(scope === "all"), onclick: () => { historyScope = "all"; render(); } }, "Todo el historial")) : null,
+    table,
+    h("div", { class: "row", style: "justify-content:space-between" },
+      h("button", { class: "btn", onclick: () => go(game ? "lists" : "home") }, game ? "Seguir jugando" : "Nueva partida"),
+      h("button", { class: "btn danger", onclick: clear, disabled: !history.length }, "Reiniciar historial")),
+    h("section", { class: "panel stack backup" },
+      h("div", null, h("div", { class: "eyebrow" }, "Copia de seguridad"),
+        h("p", { class: "muted", style: "margin:4px 0 0;font-size:14px" }, "El historial vive solo en este móvil. Guarda una copia por si se borran los datos del navegador.")),
+      h("div", { class: "row" },
+        h("button", { class: "btn", onclick: exportHistory, disabled: !history.length }, "Exportar historial"),
+        h("button", { class: "btn", onclick: () => fileIn.click() }, "Importar historial"),
+        fileIn)));
+}
+/* Valida un archivo de copia: acepta el formato exportado o una lista suelta de rondas. */
+function parseBackup(text) {
+  const data = JSON.parse(text);
+  const list = Array.isArray(data) ? data : data && Array.isArray(data.history) ? data.history : null;
+  if (!list) throw new Error("formato");
+  const rows = list.filter(r => r && Number.isInteger(+r.list) && +r.list >= 1 && +r.list <= LISTS.length && Number.isFinite(+r.points) && +r.points >= 0 && +r.points <= 120)
+    .map(r => ({ id: Number.isFinite(+r.id) ? +r.id : Date.parse(r.date) || Date.now() + Math.random(), list: +r.list, points: +r.points,
+      date: typeof r.date === "string" && !isNaN(Date.parse(r.date)) ? r.date : new Date().toISOString(), round: Number.isInteger(+r.round) ? +r.round : 1, gameId: r.gameId != null ? r.gameId : null }));
+  if (!rows.length && list.length) throw new Error("vacío");
+  return rows;
+}
+
+/* ---------- arranque ---------- */
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && round && round.timer.endAt) { wakeLock = null; keepAwake(true); }
+});
+render();
+
+/* PWA: service worker para funcionar sin conexión (solo en https o localhost). */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  /* El service worker avisa cuando ha descargado una versión nueva en segundo plano. */
+  navigator.serviceWorker.addEventListener("message", e => {
+    if (!e.data || e.data.type !== "app-updated" || document.querySelector(".update-bar")) return;
+    const bar = h("div", { class: "toast update-bar", role: "status" }, "Hay una versión nueva ",
+      h("button", { class: "btn ghost", style: "min-height:32px;color:inherit;text-decoration:underline", onclick: () => location.reload() }, "Recargar"));
+    document.body.append(bar);
+  });
+  navigator.serviceWorker.startMessages();
+}
+</script>
+</body>
+</html>

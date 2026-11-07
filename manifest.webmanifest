@@ -1,0 +1,27 @@
+{
+  "id": "./",
+  "name": "Scattergories",
+  "short_name": "Scattergories",
+  "description": "Scattergories para jugar en grupo, cada uno con su móvil: dado de letras, temporizador, 20 listas y puntuaciones. Funciona sin conexión.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef1f7",
+  "theme_color": "#2346d8",
+  "categories": ["games", "entertainment", "lifestyle"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "screenshots/inicio.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Elige si eres Host o Invitado" },
+    { "src": "screenshots/host.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Dado de letras y temporizador del Host" },
+    { "src": "screenshots/correccion.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Corrección con 0, 5 o 10 puntos" },
+    { "src": "screenshots/tabla.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Tabla histórica de puntuaciones" },
+    { "src": "screenshots/escritorio.png", "sizes": "1280x800", "type": "image/png", "form_factor": "wide", "label": "Scattergories en pantalla grande" }
+  ]
+}
